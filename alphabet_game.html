@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magic Alphabet Adventure</title>
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        body, html {
+            margin: 0; padding: 0; overflow: hidden; height: 100%; width: 100%;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+            background-color: #7dd3fc;
+        }
+        #root { height: 100%; }
+        
+        .glossy-bubble {
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.1));
+            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.4), 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .loading-screen {
+            position: fixed; inset: 0; background: #7dd3fc;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 2rem; z-index: 9999;
+        }
+
+        .interactive-btn {
+            position: relative;
+            z-index: 100;
+            cursor: pointer;
+            pointer-events: auto !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading-screen">✨ Opening Magic Tree...</div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        window.addEventListener('load', () => {
+            const loadingScreen = document.getElementById('loading');
+            if (loadingScreen) loadingScreen.style.display = 'none';
+
+            const { useState } = React;
+            
+            // Library Detection
+            const FM = window.Motion || window.framerMotion || window.FramerMotion || {};
+            const motion = FM.motion || { div: 'div', button: 'button', h1: 'h1' };
+            const AnimatePresence = FM.AnimatePresence || (({children}) => <>{children}</>);
+
+            // --- AUDIO ENGINE ---
+            const playMagicSound = () => {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.start(); osc.stop(ctx.currentTime + 0.5);
+                } catch(e) {}
+            };
+
+            const LANGUAGES = { EN: 'English', HI: 'Hindi' };
+            const ALPHABET_DATA = {
+                EN: [
+                    { char: 'A', word: 'Apple', emoji: '🍎', voice: "A for Apple" }, 
+                    { char: 'B', word: 'Ball', emoji: '⚽', voice: "B for Ball" },
+                    { char: 'C', word: 'Cat', emoji: '🐱', voice: "C for Cat" }, 
+                    { char: 'D', word: 'Dog', emoji: '🐶', voice: "D for Dog" },
+                    { char: 'E', word: 'Elephant', emoji: '🐘', voice: "E for Elephant" }, 
+                    { char: 'F', word: 'Fish', emoji: '🐟', voice: "F for Fish" },
+                    { char: 'G', word: 'Grapes', emoji: '🍇', voice: "G for Grapes" }, 
+                    { char: 'H', word: 'Hat', emoji: '👒', voice: "H for Hat" },
+                ],
+                HI: [
+                    { char: 'अ', word: 'अनार', emoji: '🍎', voice: "अ से अनार" }, 
+                    { char: 'ब', word: 'बिल्ली', emoji: '🐱', voice: "ब से बिल्ली" },
+                    { char: 'क', word: 'केला', emoji: '🍌', voice: "क से केला" }, 
+                    { char: 'ग', word: 'गमला', emoji: '🪴', voice: "ग से गमला" },
+                    { char: 'घ', word: 'घर', emoji: '🏠', voice: "घ से घर" }, 
+                    { char: 'च', word: 'चम्मच', emoji: '🥄', voice: "च से चम्मच" },
+                    { char: 'त', word: 'तितली', emoji: '🦋', voice: "त से तितली" }, 
+                    { char: 'म', word: 'मछली', emoji: '🐟', voice: "म से मछली" },
+                ]
+            };
+
+            const Mascot = ({ isCelebrating }) => (
+                <div className="fixed bottom-4 right-4 z-[60] pointer-events-none">
+                    <motion.div
+                        animate={isCelebrating ? { 
+                            scale: [1, 1.2, 1], 
+                            y: [0, -40, 0],
+                            rotate: [0, -10, 10, 0] 
+                        } : { 
+                            y: [0, -10, 0] 
+                        }}
+                        transition={{ duration: isCelebrating ? 0.6 : 2, repeat: isCelebrating ? 0 : Infinity }}
+                    >
+                        <svg width="120" height="120" viewBox="0 0 200 200">
+                            <circle cx="100" cy="70" r="50" fill="#FFD1A4" />
+                            <ellipse cx="100" cy="140" rx="45" ry="55" fill="#4FB3FF" />
+                            <circle cx="80" cy="65" r="5" fill="#333" />
+                            <circle cx="120" cy="65" r="5" fill="#333" />
+                            <path d="M 80 85 Q 100 105 120 85" stroke="#333" strokeWidth="4" fill="none" strokeLinecap="round" />
+                        </svg>
+                    </motion.div>
+                </div>
+            );
+
+            const App = () => {
+                const [view, setView] = useState('menu');
+                const [lang, setLang] = useState('EN');
+                const [isCelebrating, setIsCelebrating] = useState(false);
+                const [reward, setReward] = useState(null);
+                const [soundEnabled, setSoundEnabled] = useState(true);
+
+                const speak = (text) => {
+                    if (!soundEnabled) return;
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = lang === 'EN' ? 'en-US' : 'hi-IN';
+                    utterance.pitch = 1.4; 
+                    utterance.rate = 0.9;
+                    window.speechSynthesis.speak(utterance);
+                };
+
+                const handleLetterClick = (item) => {
+                    if (soundEnabled) playMagicSound();
+                    speak(item.voice);
+                    setReward(item);
+                    setIsCelebrating(true);
+                    setTimeout(() => {
+                        setIsCelebrating(false);
+                        setReward(null);
+                    }, 2800);
+                };
+
+                return (
+                    <div className="relative w-full h-screen bg-sky-300 overflow-hidden select-none">
+                        <div className="absolute inset-0 bg-gradient-to-b from-blue-400 to-green-300" />
+                        
+                        <div className="relative z-[100] flex justify-between items-center p-4 md:p-6 w-full">
+                            <div className="flex gap-2">
+                                <a href="index.html" className="interactive-btn bg-white px-4 py-3 rounded-2xl shadow-xl font-bold flex items-center gap-2 border-b-4 border-sky-100 text-blue-600">
+                                    <span className="text-2xl">🏠</span>
+                                    <span className="hidden sm:inline">HOME</span>
+                                </a>
+                                <button onClick={() => setSoundEnabled(!soundEnabled)} className="interactive-btn bg-white p-3 rounded-2xl shadow-xl border-b-4 border-sky-100">
+                                    <span className="text-2xl">{soundEnabled ? '🔊' : '🔈'}</span>
+                                </button>
+                            </div>
+
+                            <div className="flex gap-2 bg-white/40 p-2 rounded-full backdrop-blur-md border-2 border-white">
+                                {Object.keys(LANGUAGES).map(l => (
+                                    <button 
+                                        key={l} 
+                                        onClick={() => { setLang(l); if(soundEnabled) playMagicSound(); }} 
+                                        className={`interactive-btn px-6 py-2 rounded-full font-bold transition-all ${lang === l ? 'bg-yellow-400 text-white shadow-md' : 'text-blue-900'}`}
+                                    >
+                                        {LANGUAGES[l]}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col items-center justify-center h-full pb-20">
+                            <AnimatePresence mode="wait">
+                                {view === 'menu' ? (
+                                    <motion.div key="menu" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-10">
+                                        <h1 className="text-6xl md:text-8xl font-black text-white drop-shadow-lg text-center italic">MAGIC TREE</h1>
+                                        <div className="flex gap-8 flex-wrap justify-center px-4 relative z-[100]">
+                                            <button onClick={() => setView('bubbles')} className="interactive-btn w-40 h-40 md:w-52 md:h-52 bg-pink-400 rounded-[40px] text-7xl md:text-8xl shadow-[0_15px_0_#be185d] border-8 border-white flex flex-col items-center justify-center">
+                                                <span>🫧</span>
+                                                <span className="text-sm font-black mt-2 text-white uppercase">Bubbles</span>
+                                            </button>
+                                            <button onClick={() => setView('monster')} className="interactive-btn w-40 h-40 md:w-52 md:h-52 bg-purple-400 rounded-[40px] text-7xl md:text-8xl shadow-[0_15px_0_#6b21a8] border-8 border-white flex flex-col items-center justify-center">
+                                                <span>👾</span>
+                                                <span className="text-sm font-black mt-2 text-white uppercase">Feed Me</span>
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div key="game" initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-center w-full max-w-5xl px-4">
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-6 justify-items-center">
+                                            {ALPHABET_DATA[lang].map((item, i) => (
+                                                <button key={i} onClick={() => handleLetterClick(item)} className="interactive-btn glossy-bubble w-28 h-28 md:w-40 md:h-40 rounded-full border-4 border-white text-4xl md:text-6xl font-black text-blue-700 flex items-center justify-center">
+                                                    {item.char}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <button onClick={() => setView('menu')} className="mt-10 bg-white/30 text-white px-8 py-2 rounded-full font-bold border border-white/50">Change Game</button>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        <AnimatePresence>
+                            {reward && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex flex-col items-center justify-center z-[200] bg-sky-500/40 backdrop-blur-md pointer-events-none">
+                                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-center p-6">
+                                        <div className="text-[12rem] drop-shadow-2xl mb-4">{reward.emoji}</div>
+                                        <div className="bg-white px-8 py-6 rounded-[30px] text-3xl md:text-5xl font-black text-blue-600 shadow-2xl border-b-[12px] border-blue-200">
+                                            {reward.char} is for {reward.word}!
+                                        </div>
+                                    </motion.div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        <Mascot isCelebrating={isCelebrating} />
+                    </div>
+                );
+            };
+
+            ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        });
+    </script>
+</body>
+</html>
